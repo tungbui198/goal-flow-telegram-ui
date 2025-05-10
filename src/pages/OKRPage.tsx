@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Objective, KeyResult, OKRState, Task, getObjectiveStatus } from '@/types/okr';
@@ -8,7 +7,7 @@ import ObjectiveCard from '@/components/okr/ObjectiveCard';
 import AddObjectiveForm from '@/components/okr/AddObjectiveForm';
 import EmptyState from '@/components/okr/EmptyState';
 import { Button } from '@/components/ui/button';
-import { Plus, Objectives, Report, Create } from 'lucide-react';
+import { Plus, BarChart2, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import StatusCards from '@/components/okr/StatusCards';
 import StatusCharts from '@/components/okr/StatusCharts';
@@ -206,16 +205,16 @@ const OKRPage: React.FC = () => {
               <h1 className="text-3xl font-bold">OKR Dashboard</h1>
               <div className="flex gap-2">
                 <Button className="bg-red-500 hover:bg-red-600">
-                  <Report className="h-4 w-4 mr-2" /> Report
+                  <FileText className="h-4 w-4 mr-2" /> Report
                 </Button>
                 <Button 
                   className="bg-blue-500 hover:bg-blue-600"
                   onClick={() => setShowAddForm(true)}
                 >
-                  <Create className="h-4 w-4 mr-2" /> Create
+                  <Plus className="h-4 w-4 mr-2" /> Create
                 </Button>
                 <Button className="bg-indigo-500 hover:bg-indigo-600">
-                  <Objectives className="h-4 w-4 mr-2" /> Objectives
+                  <BarChart2 className="h-4 w-4 mr-2" /> Objectives
                 </Button>
               </div>
             </div>
