@@ -4,19 +4,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface AddObjectiveFormProps {
-  onAdd: (title: string) => void;
+  onAdd: (title: string, startDate: string, endDate: string) => void;
   onCancel: () => void;
 }
 
 const AddObjectiveForm: React.FC<AddObjectiveFormProps> = ({ onAdd, onCancel }) => {
   const [title, setTitle] = useState('');
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onAdd(title.trim());
+      onAdd(title.trim(), startDate, endDate);
       setTitle('');
     }
   };
@@ -33,6 +36,25 @@ const AddObjectiveForm: React.FC<AddObjectiveFormProps> = ({ onAdd, onCancel }) 
               className="w-full"
               autoFocus
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
             
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={onCancel}>

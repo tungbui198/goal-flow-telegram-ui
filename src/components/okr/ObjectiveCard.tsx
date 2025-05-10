@@ -3,49 +3,67 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { KeyResult } from '@/types/okr';
-import { Trash, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { KeyResult, Task, Objective, calculateObjectiveProgress } from '@/types/okr';
+import { Trash, Plus, Calendar } from 'lucide-react';
 import KeyResultItem from './KeyResultItem';
 import AddKeyResultForm from './AddKeyResultForm';
+import { format } from 'date-fns';
 
 interface ObjectiveCardProps {
-  id: string;
-  title: string;
-  keyResults: KeyResult[];
+  objective: Objective;
   onAddKeyResult: (objectiveId: string, keyResult: Omit<KeyResult, 'id'>) => void;
   onUpdateKeyResult: (objectiveId: string, keyResultId: string, progress: number) => void;
+  onUpdateKeyResultTasks: (objectiveId: string, keyResultId: string, tasks: Task[]) => void;
   onDeleteKeyResult: (objectiveId: string, keyResultId: string) => void;
   onDeleteObjective: (objectiveId: string) => void;
 }
 
 const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
-  id,
-  title,
-  keyResults,
+  objective,
   onAddKeyResult,
   onUpdateKeyResult,
+  onUpdateKeyResultTasks,
   onDeleteKeyResult,
   onDeleteObjective
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Calculate overall progress
-  const calculateProgress = () => {
-    if (keyResults.length === 0) return 0;
-    const totalProgress = keyResults.reduce((acc, kr) => acc + kr.progress, 0);
-    return Math.round(totalProgress / keyResults.length);
+  const progress = calculateObjectiveProgress(objective.keyResults);
+  
+  const getStatusColor = () => {
+    switch(objective.status) {
+      case 'completed': return 'bg-green-500';
+      case 'in-progress': return 'bg-blue-500';
+      case 'behind': return 'bg-orange-500';
+      default: return 'bg-gray-500';
+    }
+  };
+  
+  const getStatusBadge = () => {
+    switch(objective.status) {
+      case 'completed': return <Badge className="bg-green-500">Completed</Badge>;
+      case 'in-progress': return <Badge className="bg-blue-500">In Progress</Badge>;
+      case 'behind': return <Badge className="bg-orange-500">Behind</Badge>;
+      default: return <Badge>Not Started</Badge>;
+    }
   };
 
-  const progress = calculateProgress();
-
   return (
-    <Card className="mb-6 border-t-4 border-t-okr-blue animate-fade-in">
+    <Card className={`mb-6 border-t-4 border-t-${getStatusColor()} animate-fade-in`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>{title}</CardTitle>
+        <div>
+          <CardTitle>{objective.title}</CardTitle>
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            <span>{format(new Date(objective.startDate), 'MMM dd')} - {format(new Date(objective.endDate), 'MMM dd, yyyy')}</span>
+            {getStatusBadge()}
+          </div>
+        </div>
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => onDeleteObjective(id)}
+          onClick={() => onDeleteObjective(objective.id)}
           className="h-8 w-8 text-gray-500 hover:text-destructive"
         >
           <Trash className="h-4 w-4" />
@@ -61,12 +79,13 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
         </div>
         
         <div className="space-y-3">
-          {keyResults.map(kr => (
+          {objective.keyResults.map(kr => (
             <KeyResultItem
               key={kr.id}
               keyResult={kr}
-              onUpdateProgress={(progress) => onUpdateKeyResult(id, kr.id, progress)}
-              onDelete={() => onDeleteKeyResult(id, kr.id)}
+              onUpdateProgress={(progress) => onUpdateKeyResult(objective.id, kr.id, progress)}
+              onDelete={() => onDeleteKeyResult(objective.id, kr.id)}
+              onUpdateTasks={(tasks) => onUpdateKeyResultTasks(objective.id, kr.id, tasks)}
             />
           ))}
         </div>
@@ -74,7 +93,7 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
         {showAddForm ? (
           <AddKeyResultForm
             onAdd={(title) => {
-              onAddKeyResult(id, { title, progress: 0 });
+              onAddKeyResult(objective.id, { title, progress: 0, tasks: [] });
               setShowAddForm(false);
             }}
             onCancel={() => setShowAddForm(false)}
