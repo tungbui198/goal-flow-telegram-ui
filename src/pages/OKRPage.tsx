@@ -7,11 +7,11 @@ import Footer from '@/components/Footer';
 import ObjectiveCard from '@/components/okr/ObjectiveCard';
 import AddObjectiveForm from '@/components/okr/AddObjectiveForm';
 import EmptyState from '@/components/okr/EmptyState';
-import BadgesPanel from '@/components/okr/BadgesPanel';
-import ExportPanel from '@/components/okr/ExportPanel';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Objectives, Report, Create } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import StatusCards from '@/components/okr/StatusCards';
+import StatusCharts from '@/components/okr/StatusCharts';
 
 const OKR_STORAGE_KEY = 'okrify-data';
 
@@ -41,64 +41,6 @@ const OKRPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(OKR_STORAGE_KEY, JSON.stringify(okrState));
   }, [okrState]);
-
-  // Check for completed objectives and award badges
-  useEffect(() => {
-    const newBadges = [];
-    let completedToday = false;
-    
-    okrState.objectives.forEach(obj => {
-      if (obj.status === 'completed') {
-        const completedDate = new Date(obj.endDate);
-        const today = new Date();
-        
-        if (completedDate.toDateString() === today.toDateString()) {
-          completedToday = true;
-        }
-        
-        // First objective completed badge
-        if (!okrState.badges.includes('First Objective Complete') && 
-            !newBadges.includes('First Objective Complete')) {
-          newBadges.push('First Objective Complete');
-        }
-      }
-    });
-    
-    // Update streak count if an objective was completed today
-    let updatedStreakCount = okrState.streakCount;
-    if (completedToday) {
-      updatedStreakCount += 1;
-      
-      // Check for streak badges
-      if (updatedStreakCount >= 7 && 
-          !okrState.badges.includes('7-Day Streak') && 
-          !newBadges.includes('7-Day Streak')) {
-        newBadges.push('7-Day Streak');
-      }
-      
-      if (updatedStreakCount >= 30 && 
-          !okrState.badges.includes('30-Day Streak') && 
-          !newBadges.includes('30-Day Streak')) {
-        newBadges.push('30-Day Streak');
-      }
-    }
-    
-    // If new badges were earned, update state and show notifications
-    if (newBadges.length > 0 || (completedToday && updatedStreakCount !== okrState.streakCount)) {
-      setOkrState(prev => ({
-        ...prev,
-        badges: [...prev.badges, ...newBadges],
-        streakCount: updatedStreakCount
-      }));
-      
-      newBadges.forEach(badge => {
-        toast({
-          title: "New Badge Earned!",
-          description: `Congratulations! You've earned: ${badge}`,
-        });
-      });
-    }
-  }, [okrState.objectives]);
 
   const handleAddObjective = (title: string, startDate: string, endDate: string) => {
     const newObjective: Objective = {
@@ -239,60 +181,84 @@ const OKRPage: React.FC = () => {
     });
   };
 
+  // Count objectives by status
+  const objectiveCounts = {
+    ongoing: okrState.objectives.filter(obj => obj.status === 'in-progress').length,
+    overdue: okrState.objectives.filter(obj => obj.status === 'behind').length
+  };
+
+  // Count key results
+  const keyResultCount = okrState.objectives.reduce((count, obj) => count + obj.keyResults.length, 0);
+
+  // Get all tasks
+  const allTasks = okrState.objectives.flatMap(obj => 
+    obj.keyResults.flatMap(kr => kr.tasks)
+  );
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header showGetStarted={false} />
       
-      <main className="flex-grow py-8 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="container mx-auto max-w-4xl">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">My OKRs</h1>
-            
-            {okrState.objectives.length > 0 && !showAddForm && (
-              <Button 
-                onClick={() => setShowAddForm(true)}
-                className="button-gradient"
-              >
-                <Plus className="h-4 w-4 mr-2" /> New Objective
-              </Button>
-            )}
+      <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto">
+          <div className="mb-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold">OKR Dashboard</h1>
+              <div className="flex gap-2">
+                <Button className="bg-red-500 hover:bg-red-600">
+                  <Report className="h-4 w-4 mr-2" /> Report
+                </Button>
+                <Button 
+                  className="bg-blue-500 hover:bg-blue-600"
+                  onClick={() => setShowAddForm(true)}
+                >
+                  <Create className="h-4 w-4 mr-2" /> Create
+                </Button>
+                <Button className="bg-indigo-500 hover:bg-indigo-600">
+                  <Objectives className="h-4 w-4 mr-2" /> Objectives
+                </Button>
+              </div>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              {showAddForm && (
-                <AddObjectiveForm 
-                  onAdd={handleAddObjective}
-                  onCancel={() => setShowAddForm(false)}
-                />
-              )}
-              
-              {okrState.objectives.length === 0 ? (
-                <EmptyState onAddObjective={() => setShowAddForm(true)} />
-              ) : (
-                <div>
-                  {okrState.objectives.map(objective => (
-                    <ObjectiveCard
-                      key={objective.id}
-                      objective={objective}
-                      onAddKeyResult={handleAddKeyResult}
-                      onUpdateKeyResult={handleUpdateKeyResult}
-                      onUpdateKeyResultTasks={handleUpdateKeyResultTasks}
-                      onDeleteKeyResult={handleDeleteKeyResult}
-                      onDeleteObjective={handleDeleteObjective}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-6">
-              <BadgesPanel 
-                badges={okrState.badges} 
-                streakCount={okrState.streakCount} 
+
+          {/* Status Cards */}
+          <StatusCards 
+            objectiveCounts={objectiveCounts}
+            keyResultCount={keyResultCount}
+            taskCount={allTasks.length}
+          />
+
+          {/* Status Charts */}
+          <StatusCharts 
+            objectives={okrState.objectives}
+            allTasks={allTasks}
+          />
+
+          <div className="mt-8">
+            {showAddForm && (
+              <AddObjectiveForm 
+                onAdd={handleAddObjective}
+                onCancel={() => setShowAddForm(false)}
               />
-              <ExportPanel okrState={okrState} />
-            </div>
+            )}
+            
+            {okrState.objectives.length === 0 && !showAddForm ? (
+              <EmptyState onAddObjective={() => setShowAddForm(true)} />
+            ) : (
+              <div className="space-y-6">
+                {okrState.objectives.map(objective => (
+                  <ObjectiveCard
+                    key={objective.id}
+                    objective={objective}
+                    onAddKeyResult={handleAddKeyResult}
+                    onUpdateKeyResult={handleUpdateKeyResult}
+                    onUpdateKeyResultTasks={handleUpdateKeyResultTasks}
+                    onDeleteKeyResult={handleDeleteKeyResult}
+                    onDeleteObjective={handleDeleteObjective}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
